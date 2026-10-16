@@ -189,15 +189,34 @@
   }
   @keyframes fadein{ from{ opacity:0 } to{ opacity:1 } }
   .modal-card{
-    position:relative; width:min(540px, calc(100vw - 36px));
+    position:relative; width:min(880px, calc(100vw - 36px));
     max-height:calc(100vh - 72px); display:flex; flex-direction:column;
     padding:20px 24px 16px; border-radius:18px;
     animation:pop .24s cubic-bezier(.2,.9,.3,1.2);
   }
-  .modal-body{ min-height:0; overflow:auto; margin:0 -6px; padding:0 6px; }
-  .modal-body::-webkit-scrollbar{ width:9px; }
-  .modal-body::-webkit-scrollbar-thumb{ background:rgba(140,190,255,0.20); border-radius:9px; }
-  .modal-body::-webkit-scrollbar-track{ background:transparent; }
+  .modal-body{ min-height:0; display:flex; gap:22px; margin-top:14px; }
+
+  /* category rail */
+  .cat-nav{ flex:0 0 176px; display:flex; flex-direction:column; gap:3px; align-self:flex-start; }
+  .cat-btn{
+    cursor:pointer; padding:9px 12px; border-radius:10px; font-size:12px;
+    letter-spacing:.06em; color:var(--dim); transition:background .18s ease, color .18s ease;
+  }
+  .cat-btn:hover{ background:rgba(255,255,255,0.05); color:var(--ink); }
+  .cat-btn.on{ background:rgba(120,190,255,0.16); color:#e2f2ff; }
+  .cat-panes{ flex:1 1 auto; min-width:0; min-height:0; overflow:auto; padding-right:6px; }
+  .cat-panes::-webkit-scrollbar{ width:9px; }
+  .cat-panes::-webkit-scrollbar-thumb{ background:rgba(140,190,255,0.20); border-radius:9px; }
+  .cat-panes::-webkit-scrollbar-track{ background:transparent; }
+  .cat-pane{ display:none; }
+  .cat-pane.on{ display:block; }
+  .cat-pane .group{ margin-top:0; }
+  .cat-pane .group + .group{ margin-top:22px; }
+  @media (max-width:640px){
+    .modal-body{ flex-direction:column; gap:12px; }
+    .cat-nav{ flex:0 0 auto; flex-direction:row; overflow-x:auto; padding-bottom:4px; }
+    .cat-btn{ white-space:nowrap; padding:7px 11px; }
+  }
   .modal-foot{
     display:flex; align-items:center; justify-content:space-between; gap:12px;
     margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.09);
@@ -258,6 +277,7 @@
     width:14px; height:14px; border:none; border-radius:50%; background:#8ce6ff;
     box-shadow:0 0 12px rgba(110,220,255,0.6);
   }
+  .row.muted .ctrls{ opacity:.4; }
   .ctrls{ display:flex; align-items:center; gap:12px; }
   select.sel{
     -webkit-appearance:none; appearance:none;
@@ -280,6 +300,39 @@
     border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.06);
     font-family:inherit; font-size:10px; color:var(--ink);
   }
+
+  /* ---------- free-mode quick mixer ---------- */
+  #mixPanel{
+    position:fixed; left:50%; top:96px; transform:translate(-50%, -14px);
+    width:min(430px, calc(100vw - 40px)); z-index:12;
+    padding:14px 16px 12px; border-radius:16px;
+    background:linear-gradient(180deg, rgba(18,26,48,0.74), rgba(10,14,28,0.60));
+    border:1px solid var(--soft); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    box-shadow:0 20px 55px rgba(0,0,0,0.5);
+    opacity:0; pointer-events:none; cursor:default;
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  #mixPanel.show{ opacity:1; transform:translate(-50%, 0); pointer-events:auto; }
+  .mix-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px; }
+  .mix-title{ font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--dim); }
+  .mix-hint{ font-size:10px; color:#5f7099; letter-spacing:.05em; }
+  .mix-row{ display:flex; align-items:center; gap:12px; padding:6px 0; }
+  .mix-row .mlabel{ flex:0 0 68px; font-size:12.5px; color:var(--ink); }
+  .mix-row .mv{ flex:0 0 34px; text-align:right; font-size:11px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  .mix-row input[type=range]{
+    -webkit-appearance:none; appearance:none; flex:1 1 auto; height:4px; border-radius:99px;
+    background:rgba(255,255,255,0.14); outline:none; cursor:pointer;
+  }
+  .mix-row input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+    background:linear-gradient(180deg,#a6f0ff,#5fc9ee); box-shadow:0 0 12px rgba(110,220,255,0.6);
+  }
+  .mix-row input[type=range]::-moz-range-thumb{
+    width:14px; height:14px; border:none; border-radius:50%; background:#8ce6ff;
+    box-shadow:0 0 12px rgba(110,220,255,0.6);
+  }
+  body.free #mixPanel, body.free #mixPanel *{ cursor:default; }
+  body.free #mixPanel input[type=range]{ cursor:pointer; }
 
   /* soft damage vignette */  #flash{
     position:fixed; inset:0; pointer-events:none; opacity:0;
@@ -395,62 +448,95 @@
     </div>
 
     <div class="modal-body">
-    <div class="group">
-      <div class="group-title">Audio</div>
-      <div class="row"><span>Sound</span><div class="switch on" id="setSound"><i></i></div></div>
-      <div class="row"><span>Master</span><input type="range" id="volMaster" min="0" max="1" step="0.01" value="0.85"></div>
-      <div class="row"><span>Music<span class="sub">pad, bells, arps &amp; chimes</span></span><input type="range" id="volMusic" min="0" max="1" step="0.01" value="0.72"></div>
-      <div class="row">
-        <span>Engine<span class="sub">drive drone</span></span>
-        <div class="ctrls">
-          <select id="engineSound" class="sel"></select>
-          <input type="range" id="volEngine" min="0" max="1" step="0.01" value="0.55">
+      <div class="cat-nav" id="catNav">
+        <div class="cat-btn on" data-cat="audio">Audio</div>
+        <div class="cat-btn" data-cat="music">Music</div>
+        <div class="cat-btn" data-cat="engine">Engine</div>
+        <div class="cat-btn" data-cat="gameplay">Gameplay</div>
+        <div class="cat-btn" data-cat="display">Display</div>
+        <div class="cat-btn" data-cat="controls">Controls</div>
+      </div>
+
+      <div class="cat-panes" id="catPanes">
+        <div class="cat-pane on" data-pane="audio">
+          <div class="group">
+            <div class="group-title">Output</div>
+            <div class="row"><span>Sound</span><div class="switch on" id="setSound"><i></i></div></div>
+            <div class="row"><span>Master volume</span><input type="range" id="volMaster" min="0" max="1" step="0.01" value="0.85"></div>
+          </div>
+          <div class="group">
+            <div class="group-title">Effects</div>
+            <div class="row"><span>Effects<span class="sub">master for the three below</span></span><input type="range" id="volFx" min="0" max="1" step="0.01" value="0.85"></div>
+            <div class="row"><span>Gunfire</span><input type="range" id="volGun" min="0" max="1" step="0.01" value="0.62"></div>
+            <div class="row"><span>Explosions</span><input type="range" id="volBoom" min="0" max="1" step="0.01" value="0.78"></div>
+            <div class="row"><span>Pickups &amp; powers</span><input type="range" id="volMisc" min="0" max="1" step="0.01" value="0.75"></div>
+          </div>
+        </div>
+
+        <div class="cat-pane" data-pane="music">
+          <div class="group">
+            <div class="group-title">Music</div>
+            <div class="row"><span>Music volume<span class="sub">scales every layer</span></span><input type="range" id="volMusic" min="0" max="1" step="0.01" value="0.72"></div>
+          </div>
+          <div class="group">
+            <div class="group-title">Layers<span class="sub">switch a layer off, or set its own level</span></div>
+            <div id="musicLayers"></div>
+          </div>
+        </div>
+
+        <div class="cat-pane" data-pane="engine">
+          <div class="group">
+            <div class="group-title">Engine</div>
+            <div class="row"><span>Voice<span class="sub">drive drone character</span></span><select id="engineSound" class="sel"></select></div>
+            <div class="row"><span>Engine volume</span><input type="range" id="volEngine" min="0" max="1" step="0.01" value="0.55"></div>
+          </div>
+        </div>
+
+        <div class="cat-pane" data-pane="gameplay">
+          <div class="group">
+            <div class="group-title">Gameplay</div>
+            <div class="row"><span>Auto-fire</span><div class="switch on" id="setAuto"><i></i></div></div>
+            <div class="row">
+              <span>Aiming<span class="sub">turret behaviour</span></span>
+              <div class="seg" id="setAim">
+                <div class="segbtn on" data-v="forward">Automatic</div>
+                <div class="segbtn" data-v="manual">Manual</div>
+              </div>
+            </div>
+            <div class="row"><span>Free mode<span class="sub">autopilot flies for you</span></span><div class="switch" id="setFree"><i></i></div></div>
+            <div class="row">
+              <span>Autopilot fire<span class="sub">only used while Free mode is on</span></span>
+              <div class="seg" id="setAutoFire">
+                <div class="segbtn on" data-v="always">Always</div>
+                <div class="segbtn" data-v="whenNeeded">When needed</div>
+                <div class="segbtn" data-v="never">Do not shoot</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cat-pane" data-pane="display">
+          <div class="group">
+            <div class="group-title">Display</div>
+            <div class="row"><span>Hide HUD in Free mode<span class="sub">clean, cinematic view</span></span><div class="switch" id="setHideHudAuto"><i></i></div></div>
+            <div class="row"><span>Hide HUD</span><div class="switch" id="setHideHud"><i></i></div></div>
+            <div class="row"><span>Reduce camera motion<span class="sub">damps hit shake</span></span><div class="switch" id="setShake"><i></i></div></div>
+          </div>
+        </div>
+
+        <div class="cat-pane" data-pane="controls">
+          <div class="group">
+            <div class="group-title">Keys</div>
+            <div class="keys">
+              Move <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or the pointer &nbsp;·&nbsp;
+              Aim mode <kbd>T</kbd> &nbsp;·&nbsp; Free mode <kbd>G</kbd> &nbsp;·&nbsp;
+              HUD <kbd>H</kbd> &nbsp;·&nbsp; Auto-fire <kbd>F</kbd> &nbsp;·&nbsp;
+              Mute <kbd>M</kbd> &nbsp;·&nbsp; Pause <kbd>P</kbd> &nbsp;·&nbsp; Settings <kbd>Esc</kbd>
+              &nbsp;·&nbsp; Apply settings <kbd>Enter</kbd>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="row"><span>Effects<span class="sub">master for the three below</span></span><input type="range" id="volFx" min="0" max="1" step="0.01" value="0.85"></div>
-      <div class="row"><span>Gunfire</span><input type="range" id="volGun" min="0" max="1" step="0.01" value="0.62"></div>
-      <div class="row"><span>Explosions</span><input type="range" id="volBoom" min="0" max="1" step="0.01" value="0.78"></div>
-      <div class="row"><span>Pickups &amp; powers</span><input type="range" id="volMisc" min="0" max="1" step="0.01" value="0.75"></div>
-    </div>
-
-    <div class="group">
-      <div class="group-title">Gameplay</div>
-      <div class="row"><span>Auto-fire</span><div class="switch on" id="setAuto"><i></i></div></div>
-      <div class="row">
-        <span>Aiming<span class="sub">turret behaviour</span></span>
-        <div class="seg" id="setAim">
-          <div class="segbtn on" data-v="forward">Automatic</div>
-          <div class="segbtn" data-v="manual">Manual</div>
-        </div>
-      </div>
-      <div class="row"><span>Free mode<span class="sub">autopilot flies for you</span></span><div class="switch" id="setFree"><i></i></div></div>
-      <div class="row">
-        <span>Autopilot fire<span class="sub">only used while Free mode is on</span></span>
-        <div class="seg" id="setAutoFire">
-          <div class="segbtn on" data-v="always">Always</div>
-          <div class="segbtn" data-v="whenNeeded">When needed</div>
-          <div class="segbtn" data-v="never">Do not shoot</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="group">
-      <div class="group-title">Display</div>
-      <div class="row"><span>Hide HUD in Free mode<span class="sub">clean, cinematic view</span></span><div class="switch" id="setHideHudAuto"><i></i></div></div>
-      <div class="row"><span>Hide HUD</span><div class="switch" id="setHideHud"><i></i></div></div>
-      <div class="row"><span>Reduce camera motion<span class="sub">damps hit shake</span></span><div class="switch" id="setShake"><i></i></div></div>
-    </div>
-
-    <div class="group">
-      <div class="group-title">Keys</div>
-      <div class="keys">
-        Move <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or the pointer &nbsp;·&nbsp;
-        Aim mode <kbd>T</kbd> &nbsp;·&nbsp; Free mode <kbd>G</kbd> &nbsp;·&nbsp;
-        HUD <kbd>H</kbd> &nbsp;·&nbsp; Auto-fire <kbd>F</kbd> &nbsp;·&nbsp;
-        Mute <kbd>M</kbd> &nbsp;·&nbsp; Pause <kbd>P</kbd> &nbsp;·&nbsp; Settings <kbd>Esc</kbd>
-        &nbsp;·&nbsp; Apply settings <kbd>Enter</kbd>
-      </div>
-    </div>
     </div><!-- /modal-body -->
 
     <div class="modal-foot">
@@ -461,6 +547,17 @@
       </div>
     </div>
   </div>
+</div>
+
+<div id="mixPanel">
+  <div class="mix-head">
+    <span class="mix-title">Free mode &middot; audio</span>
+    <span class="mix-hint">move the mouse to adjust</span>
+  </div>
+  <div class="mix-row"><span class="mlabel">Master</span><input type="range" id="mixMaster" min="0" max="1" step="0.01" value="0.85"><span class="mv" id="mvMaster">85</span></div>
+  <div class="mix-row"><span class="mlabel">Music</span><input type="range" id="mixMusic" min="0" max="1" step="0.01" value="0.72"><span class="mv" id="mvMusic">72</span></div>
+  <div class="mix-row"><span class="mlabel">Engine</span><input type="range" id="mixEngine" min="0" max="1" step="0.01" value="0.55"><span class="mv" id="mvEngine">55</span></div>
+  <div class="mix-row"><span class="mlabel">Effects</span><input type="range" id="mixFx" min="0" max="1" step="0.01" value="0.85"><span class="mv" id="mvFx">85</span></div>
 </div>
 
 <div id="flash"></div>
@@ -1238,8 +1335,8 @@ window.addEventListener('pointermove', function (e) {
 }, { passive: true });
 
 window.addEventListener('pointerdown', function (e) {
-  // clicking inside the settings modal must not start firing
-  if (e.target && e.target.closest && e.target.closest('#settingsModal')) return;
+  // clicking inside the settings modal or the quick mixer must not start firing
+  if (e.target && e.target.closest && e.target.closest('#settingsModal, #mixPanel')) return;
   input.firing = true;
 });
 window.addEventListener('pointerup',   function () { input.firing = false; });
@@ -1332,6 +1429,30 @@ const Audio = (function () {
     [ 98.00, 146.83, 196.00, 246.94, 293.66, 440.00]   // G
   ];
 
+  // Mixable music layers. Each gets its own front gain so it can be enabled and
+  // levelled independently; the Music slider still scales the whole bed.
+  const MUSIC_LAYERS = [
+    { id: 'pad',    label: 'Pad',    sub: 'slow chord bed' },
+    { id: 'bells',  label: 'Bells',  sub: 'glass motif' },
+    { id: 'bass',   label: 'Bass',   sub: 'low pulse' },
+    { id: 'arps',   label: 'Arps',   sub: 'soft mallets' },
+    { id: 'chimes', label: 'Chimes', sub: 'high accents' },
+    { id: 'swells', label: 'Swells', sub: 'slow breaths' }
+  ];
+  const musicLayer = {
+    pad:    { on: true, vol: 1.0 },
+    bells:  { on: true, vol: 1.0 },
+    bass:   { on: true, vol: 1.0 },
+    arps:   { on: true, vol: 1.0 },
+    chimes: { on: true, vol: 1.0 },
+    swells: { on: true, vol: 1.0 }
+  };
+  const layerGain = {};
+  function layerActive(id) {
+    const L = musicLayer[id];
+    return !!L && L.on && L.vol > 0.002;
+  }
+
   function makeNoise() {
     const len = Math.floor(ctx.sampleRate * 2);
     const buf = ctx.createBuffer(1, len, ctx.sampleRate);
@@ -1421,19 +1542,28 @@ const Audio = (function () {
     engineBus = bEngine.out; engineIn = bEngine.input; engineSend = bEngine.send;
     musicBus.connect(master); engineBus.connect(master);
 
+    // per-layer front gains, so each music layer can be mixed and muted on its own
+    for (let i = 0; i < MUSIC_LAYERS.length; i++) {
+      const id = MUSIC_LAYERS[i].id;
+      const g = ctx.createGain();
+      g.gain.value = layerActive(id) ? musicLayer[id].vol : 0;
+      g.connect(musicIn);
+      layerGain[id] = g;
+    }
+
     // --- space delay (fed from the pad) ---
     const delay = ctx.createDelay(1.0);
     delay.delayTime.value = 0.44;
     const fb = ctx.createGain(); fb.gain.value = 0.34;
     const damp = ctx.createBiquadFilter(); damp.type = 'lowpass'; damp.frequency.value = 1400;
-    delay.connect(damp); damp.connect(fb); fb.connect(delay); damp.connect(musicIn);
+    delay.connect(damp); damp.connect(fb); fb.connect(delay); damp.connect(layerGain.pad);
 
     // --- pad ---
     filter = ctx.createBiquadFilter();
     filter.type = 'lowpass'; filter.frequency.value = 620; filter.Q.value = 1.6;
     padGain = ctx.createGain(); padGain.gain.value = 0.0;
     filter.connect(padGain);
-    padGain.connect(musicIn);
+    padGain.connect(layerGain.pad);
     padGain.connect(delay);
 
     const chord = progressions[0];
@@ -1493,8 +1623,8 @@ const Audio = (function () {
     g.connect(lp);
 
     const p = panner(pan);
-    if (p) { lp.connect(p); p.connect(musicIn); }
-    else   { lp.connect(musicIn); }
+    if (p) { lp.connect(p); p.connect(layerGain.bells); }
+    else   { lp.connect(layerGain.bells); }
 
     osc.start(when); osc2.start(when);
     osc.stop(when + 4.0); osc2.stop(when + 4.0);
@@ -1510,7 +1640,7 @@ const Audio = (function () {
     g.gain.linearRampToValueAtTime(0.00001, when + 5.5);
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 320;
     osc.connect(g); sub.connect(gs); gs.connect(g); g.connect(lp);
-    lp.connect(musicIn);
+    lp.connect(layerGain.bass);
     osc.start(when); sub.start(when);
     osc.stop(when + 5.8); sub.stop(when + 5.8);
   }
@@ -1534,8 +1664,8 @@ const Audio = (function () {
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200; lp.Q.value = 0.7;
     osc.connect(g); g.connect(lp);
     const p = panner(pan);
-    if (p) { lp.connect(p); p.connect(musicIn); }
-    else   { lp.connect(musicIn); }
+    if (p) { lp.connect(p); p.connect(layerGain.arps); }
+    else   { lp.connect(layerGain.arps); }
     osc.start(when); osc.stop(when + 1.25);
   }
 
@@ -1555,8 +1685,8 @@ const Audio = (function () {
     const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 500;
     g.connect(hp);
     const p = panner(pan);
-    if (p) { hp.connect(p); p.connect(musicIn); }
-    else   { hp.connect(musicIn); }
+    if (p) { hp.connect(p); p.connect(layerGain.chimes); }
+    else   { hp.connect(layerGain.chimes); }
   }
 
   // ---- a long, slow breath of filtered noise with a low pad under it ----
@@ -1570,7 +1700,7 @@ const Audio = (function () {
     g.gain.setValueAtTime(0.00001, when);
     g.gain.linearRampToValueAtTime(vol, when + 8);
     g.gain.linearRampToValueAtTime(0.00001, when + 18);
-    src.connect(bp); bp.connect(g); g.connect(musicIn);
+    src.connect(bp); bp.connect(g); g.connect(layerGain.swells);
     src.start(when); src.stop(when + 19);
 
     const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 55;
@@ -1578,7 +1708,7 @@ const Audio = (function () {
     og.gain.setValueAtTime(0.00001, when);
     og.gain.linearRampToValueAtTime(vol * 0.6, when + 9);
     og.gain.linearRampToValueAtTime(0.00001, when + 18);
-    o.connect(og); og.connect(musicIn);
+    o.connect(og); og.connect(layerGain.swells);
     o.start(when); o.stop(when + 19);
   }
 
@@ -1601,11 +1731,13 @@ const Audio = (function () {
     musicTimer -= dt;
     if (musicTimer <= 0) {
       musicTimer = 1.5 + Math.random() * 2.8;
-      const t = ctx.currentTime + 0.03;
-      const f = pickNote();
-      bell(f, t, 0.030 + Math.random() * 0.022, (Math.random() * 2 - 1) * 0.6);
-      if (Math.random() < 0.24) {
-        bell(f * 1.5, t + 0.42 + Math.random() * 0.4, 0.018, (Math.random() * 2 - 1) * 0.8);
+      if (layerActive('bells')) {
+        const t = ctx.currentTime + 0.03;
+        const f = pickNote();
+        bell(f, t, 0.030 + Math.random() * 0.022, (Math.random() * 2 - 1) * 0.6);
+        if (Math.random() < 0.24) {
+          bell(f * 1.5, t + 0.42 + Math.random() * 0.4, 0.018, (Math.random() * 2 - 1) * 0.8);
+        }
       }
     }
 
@@ -1613,34 +1745,42 @@ const Audio = (function () {
     bassTimer -= dt;
     if (bassTimer <= 0) {
       bassTimer = 13 + Math.random() * 9;
-      const chord = progressions[chordIndex % progressions.length];
-      bassNote(chord[0] * 0.5, ctx.currentTime + 0.05, 0.045);
+      if (layerActive('bass')) {
+        const chord = progressions[chordIndex % progressions.length];
+        bassNote(chord[0] * 0.5, ctx.currentTime + 0.05, 0.045);
+      }
     }
 
     // a sparse mallet arpeggio threading through the upper chord tones
     arpTimer -= dt;
     if (arpTimer <= 0) {
       arpTimer = 0.9 + Math.random() * 2.1;
-      const chord = progressions[chordIndex % progressions.length];
-      const top = chord[2 + ((Math.random() * (chord.length - 2)) | 0)];
-      const f = top * (Math.random() < 0.45 ? 2 : 1);
-      pluck(f, ctx.currentTime + 0.04, 0.026 + Math.random() * 0.018, (Math.random() * 2 - 1) * 0.7);
+      if (layerActive('arps')) {
+        const chord = progressions[chordIndex % progressions.length];
+        const top = chord[2 + ((Math.random() * (chord.length - 2)) | 0)];
+        const f = top * (Math.random() < 0.45 ? 2 : 1);
+        pluck(f, ctx.currentTime + 0.04, 0.026 + Math.random() * 0.018, (Math.random() * 2 - 1) * 0.7);
+      }
     }
 
     // the occasional high chime, like a distant star
     chimeTimer -= dt;
     if (chimeTimer <= 0) {
       chimeTimer = 7 + Math.random() * 9;
-      let f = pickNote() * (Math.random() < 0.5 ? 2 : 1);
-      while (f > 2000) f *= 0.5;
-      chime(f, ctx.currentTime + 0.05, 0.017 + Math.random() * 0.011, (Math.random() * 2 - 1) * 0.85);
+      if (layerActive('chimes')) {
+        let f = pickNote() * (Math.random() < 0.5 ? 2 : 1);
+        while (f > 2000) f *= 0.5;
+        chime(f, ctx.currentTime + 0.05, 0.017 + Math.random() * 0.011, (Math.random() * 2 - 1) * 0.85);
+      }
     }
 
     // a slow swell of noise and low tone, every so often
     swellTimer -= dt;
     if (swellTimer <= 0) {
       swellTimer = 26 + Math.random() * 20;
-      swell(ctx.currentTime + 0.2, 0.018 + Math.random() * 0.012);
+      if (layerActive('swells')) {
+        swell(ctx.currentTime + 0.2, 0.018 + Math.random() * 0.012);
+      }
     }
   }
 
@@ -1959,6 +2099,17 @@ const Audio = (function () {
     miscBus.gain.setTargetAtTime(volMisc, now, t);
   }
 
+  function applyLayerGains() {
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    for (let i = 0; i < MUSIC_LAYERS.length; i++) {
+      const id = MUSIC_LAYERS[i].id;
+      const g = layerGain[id];
+      if (!g) continue;
+      g.gain.setTargetAtTime(layerActive(id) ? musicLayer[id].vol : 0, now, 0.12);
+    }
+  }
+
   return {
     resume: resume,
     update: update,
@@ -2018,6 +2169,33 @@ const Audio = (function () {
         master: volMaster, music: volMusic, engine: volEngine, fx: volFx,
         gun: volGun, boom: volBoom, misc: volMisc
       };
+    },
+
+    // ---- music layers ----
+    musicLayerMeta: function () {
+      const out = [];
+      for (let i = 0; i < MUSIC_LAYERS.length; i++) {
+        out.push({ id: MUSIC_LAYERS[i].id, label: MUSIC_LAYERS[i].label, sub: MUSIC_LAYERS[i].sub });
+      }
+      return out;
+    },
+    getMusicLayers: function () {
+      const out = [];
+      for (let i = 0; i < MUSIC_LAYERS.length; i++) {
+        const id = MUSIC_LAYERS[i].id;
+        out.push({ id: id, on: musicLayer[id].on, vol: musicLayer[id].vol });
+      }
+      return out;
+    },
+    setMusicLayers: function (arr) {
+      if (!arr) return;
+      for (let i = 0; i < arr.length; i++) {
+        const L = musicLayer[arr[i].id];
+        if (!L) continue;
+        if (typeof arr[i].on === 'boolean') L.on = arr[i].on;
+        if (typeof arr[i].vol === 'number') L.vol = arr[i].vol;
+      }
+      applyLayerGains();
     }
   };
 })();
@@ -3168,6 +3346,9 @@ const settingsModal = document.getElementById('settingsModal');
 const settingsBackdrop = document.getElementById('settingsBackdrop');
 const settingsClose = document.getElementById('settingsClose');
 const elToast = document.getElementById('toast');
+const catNav = document.getElementById('catNav');
+const catPanes = document.getElementById('catPanes');
+const mixPanel = document.getElementById('mixPanel');
 crosshairEl = document.getElementById('crosshair');
 
 const SETTINGS = {
@@ -3224,6 +3405,30 @@ function writeVolumes(v) {
   }
 })();
 
+// build the per-layer music controls straight from the audio module
+const layerEls = {};
+(function buildMusicLayers() {
+  const host = document.getElementById('musicLayers');
+  const meta = Audio.musicLayerMeta();
+  for (let i = 0; i < meta.length; i++) {
+    const m = meta[i];
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML =
+      '<span>' + m.label + '<span class="sub">' + m.sub + '</span></span>' +
+      '<div class="ctrls">' +
+        '<div class="switch on" id="layer-' + m.id + '"><i></i></div>' +
+        '<input type="range" id="mvol-' + m.id + '" min="0" max="1" step="0.01" value="1">' +
+      '</div>';
+    host.appendChild(row);
+    layerEls[m.id] = {
+      row: row,
+      sw: document.getElementById('layer-' + m.id),
+      vol: document.getElementById('mvol-' + m.id)
+    };
+  }
+})();
+
 // persists whatever is currently live
 function saveSettings() {
   try {
@@ -3231,6 +3436,7 @@ function saveSettings() {
       sound: Audio.isEnabled(),
       volumes: Audio.getVolumes(),
       engineSound: Audio.getEnginePreset(),
+      musicLayers: Audio.getMusicLayers(),
       autoFireMode: GAME.autoFireMode,
       hideHudInFree: SETTINGS.hideHudInFree,
       hideHud: SETTINGS.hideHud,
@@ -3249,6 +3455,7 @@ function loadSettings() {
     Audio.setVolumes(s.volumes);
   }
   if (s.engineSound) { engineSel.value = s.engineSound; Audio.setEnginePreset(s.engineSound); }
+  if (s.musicLayers) Audio.setMusicLayers(s.musicLayers);
   if (s.autoFireMode) GAME.autoFireMode = s.autoFireMode;
   if (typeof s.hideHudInFree === 'boolean') SETTINGS.hideHudInFree = s.hideHudInFree;
   if (typeof s.hideHud === 'boolean') SETTINGS.hideHud = s.hideHud;
@@ -3276,6 +3483,7 @@ const STAGED = {
   sound: true,
   volumes: {},
   engineSound: 'ion',
+  musicLayers: [],
   autofire: true,
   aimMode: 'forward',
   autoFireMode: 'always',
@@ -3285,6 +3493,15 @@ const STAGED = {
   reduceMotion: false
 };
 
+function stagedLayer(id) {
+  for (let i = 0; i < STAGED.musicLayers.length; i++) {
+    if (STAGED.musicLayers[i].id === id) return STAGED.musicLayers[i];
+  }
+  const L = { id: id, on: true, vol: 1 };
+  STAGED.musicLayers.push(L);
+  return L;
+}
+
 const elDirty  = document.getElementById('settingsDirty');
 const btnApply = document.getElementById('settingsApply');
 const btnDiscard = document.getElementById('settingsDiscard');
@@ -3293,6 +3510,7 @@ function stageFromLive() {
   STAGED.sound = Audio.isEnabled();
   STAGED.volumes = Audio.getVolumes();
   STAGED.engineSound = Audio.getEnginePreset();
+  STAGED.musicLayers = Audio.getMusicLayers();
   STAGED.autofire = GAME.autofire;
   STAGED.aimMode = GAME.aimMode;
   STAGED.autoFireMode = GAME.autoFireMode;
@@ -3321,6 +3539,15 @@ function renderStaged() {
   swShake.classList.toggle('on', STAGED.reduceMotion);
   segOn(segAim, STAGED.aimMode);
   segOn(segAutoFire, STAGED.autoFireMode);
+
+  for (let i = 0; i < STAGED.musicLayers.length; i++) {
+    const L = STAGED.musicLayers[i];
+    const el = layerEls[L.id];
+    if (!el) continue;
+    el.sw.classList.toggle('on', L.on);
+    el.vol.value = L.vol;
+    el.row.classList.toggle('muted', !L.on);
+  }
 }
 
 function isDirty() {
@@ -3337,6 +3564,14 @@ function isDirty() {
   for (let i = 0; i < VOL_KEYS.length; i++) {
     const k = VOL_KEYS[i];
     if (Math.abs((STAGED.volumes[k] || 0) - (live[k] || 0)) > 1e-4) return true;
+  }
+  const liveLayers = Audio.getMusicLayers();
+  for (let i = 0; i < STAGED.musicLayers.length; i++) {
+    const L = STAGED.musicLayers[i];
+    const r = liveLayers[i];
+    if (!r) continue;
+    if (L.id !== r.id || L.on !== r.on) return true;
+    if (Math.abs((L.vol || 0) - (r.vol || 0)) > 1e-4) return true;
   }
   return false;
 }
@@ -3382,6 +3617,7 @@ function commitStaged() {
   Audio.setEnabled(STAGED.sound);
   Audio.setVolumes(STAGED.volumes);
   Audio.setEnginePreset(STAGED.engineSound);
+  Audio.setMusicLayers(STAGED.musicLayers);
 
   saveSettings();
   markDirty(true);
@@ -3434,6 +3670,7 @@ function setFreeMode(on) {
     }
   }
   syncSettings();
+  if (on) revealMixer(); else hideMixer();
   if (SETTINGS.hideHudInFree) {
     showToast(on ? 'Free mode · press G or move to take control' : 'HUD restored');
   }
@@ -3445,12 +3682,14 @@ function openSettings(open) {
   document.body.classList.toggle('settings-open', !!open);
   if (open) {
     if (document.pointerLockElement) document.exitPointerLock();
+    hideMixer();
     Audio.resume();
     stageFromLive();     // start editing from what's actually in effect
     renderStaged();
     markDirty(false);
   } else {
     discardStaged();     // closing without Apply throws the edits away
+    if (GAME.freeMode) revealMixer();
   }
 }
 
@@ -3497,6 +3736,108 @@ for (let i = 0; i < VOL_KEYS.length; i++) {
     markDirty(false);
   });
 }
+
+// per-layer music switches and levels (staged like everything else)
+(function wireMusicLayers() {
+  const meta = Audio.musicLayerMeta();
+  for (let i = 0; i < meta.length; i++) {
+    const id = meta[i].id;
+    const el = layerEls[id];
+    if (!el) continue;
+    el.sw.addEventListener('click', function () {
+      const L = stagedLayer(id);
+      L.on = !L.on;
+      touched();
+    });
+    el.vol.addEventListener('input', function () {
+      stagedLayer(id).vol = parseFloat(el.vol.value);
+      markDirty(false);
+    });
+  }
+})();
+
+// ---- category rail ----
+function setCategory(id) {
+  const btns = catNav.querySelectorAll('.cat-btn');
+  for (let i = 0; i < btns.length; i++) {
+    btns[i].classList.toggle('on', btns[i].getAttribute('data-cat') === id);
+  }
+  const panes = catPanes.querySelectorAll('.cat-pane');
+  for (let i = 0; i < panes.length; i++) {
+    panes[i].classList.toggle('on', panes[i].getAttribute('data-pane') === id);
+  }
+}
+catNav.addEventListener('click', function (e) {
+  const b = e.target.closest ? e.target.closest('.cat-btn') : null;
+  if (b) setCategory(b.getAttribute('data-cat'));
+});
+
+// ============================================================
+//  Free-mode quick mixer — pops up when the autopilot takes over
+// ============================================================
+const MIX_KEYS = ['master', 'music', 'engine', 'fx'];
+const mixEls = {};
+for (let i = 0; i < MIX_KEYS.length; i++) {
+  const k = MIX_KEYS[i];
+  const cap = k.charAt(0).toUpperCase() + k.slice(1);
+  mixEls[k] = { input: document.getElementById('mix' + cap), out: document.getElementById('mv' + cap) };
+}
+
+let mixHideTimer = null;
+const MIX_LINGER = 9000;
+
+function mixerWanted() {
+  return GAME.started && GAME.freeMode && !GAME.settingsOpen && !GAME.paused;
+}
+function syncMixer() {
+  const v = Audio.getVolumes();
+  for (let i = 0; i < MIX_KEYS.length; i++) {
+    const k = MIX_KEYS[i];
+    mixEls[k].input.value = v[k];
+    mixEls[k].out.textContent = Math.round((v[k] || 0) * 100);
+  }
+}
+function hideMixer() {
+  if (mixHideTimer) { clearTimeout(mixHideTimer); mixHideTimer = null; }
+  mixPanel.classList.remove('show');
+  document.body.classList.remove('mix-open');
+}
+function revealMixer() {
+  if (!mixerWanted()) return;
+  syncMixer();
+  mixPanel.classList.add('show');
+  document.body.classList.add('mix-open');
+  if (mixHideTimer) clearTimeout(mixHideTimer);
+  mixHideTimer = setTimeout(hideMixer, MIX_LINGER);
+}
+// called on any pointer movement; reveals the panel, or keeps it alive
+function mixerActivity() {
+  if (!mixerWanted()) { hideMixer(); return; }
+  if (mixPanel.classList.contains('show')) {
+    if (mixHideTimer) clearTimeout(mixHideTimer);
+    mixHideTimer = setTimeout(hideMixer, MIX_LINGER);
+  } else {
+    revealMixer();
+  }
+}
+
+for (let i = 0; i < MIX_KEYS.length; i++) {
+  const k = MIX_KEYS[i];
+  const el = mixEls[k];
+  el.input.addEventListener('input', function () {
+    const val = parseFloat(el.input.value);
+    const obj = {}; obj[k] = val;
+    Audio.setVolumes(obj);
+    el.out.textContent = Math.round(val * 100);
+    if (volEls[k]) volEls[k].value = val;    // keep the modal slider in step
+    mixerActivity();
+  });
+  el.input.addEventListener('change', function () { saveSettings(); });
+}
+mixPanel.addEventListener('pointerenter', mixerActivity);
+window.addEventListener('pointermove', function () {
+  if (GAME.freeMode) mixerActivity();
+}, { passive: true });
 
 function begin() {
   if (GAME.started) return;

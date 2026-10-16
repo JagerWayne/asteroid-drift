@@ -19,9 +19,16 @@ slow-moving rock.
   screen) and the ship flies itself. Any movement key hands control back.
   Autopilot gunnery can be set to *Always*, *When needed* or *Do not shoot*.
 - **Power-ups:** rapid fire, spread, ward, magnet, nova.
-- **A full settings modal** with staged edits, an Apply button and
-  `localStorage` persistence: per-family volume mixers, eleven engine voices,
-  HUD visibility, reduced camera motion and more.
+- **A full settings modal**, organised into categories (Audio, Music, Engine,
+  Gameplay, Display, Controls) with staged edits, an Apply button and
+  `localStorage` persistence.
+- **A real music mixer.** The generative score is split into layers — pad,
+  bells, bass, arps, chimes and swells — and every layer has its own on/off
+  switch and volume slider under Music. Eleven engine voices, a per-family
+  effects mix, HUD visibility, reduced camera motion and more.
+- **A quick mixer in Free mode.** When the autopilot takes over, a small volume
+  panel pops up (master, music, engine, effects); it fades away after a moment
+  and comes back when you move the mouse.
 - **Procedural everything.** All textures, the celestial generative music
   (pad, bells, arpeggio, chimes and slow swells), the ship, the ringed planet,
   the comets and the dust are generated at runtime. No external assets.
