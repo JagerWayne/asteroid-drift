@@ -21,6 +21,9 @@ slow-moving rock.
   the autopilot gunnery (Automatic/Manual and Always/When needed/Do not shoot),
   then press **OK**. Tick "Ask me when Free mode starts" off to skip it.
 - **Power-ups:** rapid fire, spread, ward, magnet, nova.
+- **A glass-cockpit interface.** The title screen, HUD, settings and touch
+  controls share one calm, frosted-glass design — thin uppercase labels,
+  generous spacing and a single cyan accent that matches the field.
 - **A full settings modal**, organised into categories (Audio, Music, Engine,
   Gameplay, Display, Controls) with staged edits, an Apply button and
   `localStorage` persistence.
