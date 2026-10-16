@@ -409,6 +409,10 @@
     .stat .k{ font-size:8px; letter-spacing:.18em; }
     #shieldWrap{ width:158px; padding:10px 14px 12px; }
     #powers{ top:auto; bottom:114px; right:16px; }
+    /* on touch the bottom corners hold Free/Fire, so the settings group moves
+       up under the shield */
+    #right{ position:fixed; top:82px; right:16px; left:auto; margin-left:0;
+      flex-direction:column; align-items:flex-end; gap:8px; }
     .power{ width:150px; padding:7px 11px 9px; }
     .btn{ padding:9px 13px; font-size:10.5px; }
     .modal-card{ width:calc(100vw - 20px); max-height:calc(100vh - 24px); padding:18px 16px 14px; border-radius:var(--r-lg); }
@@ -525,6 +529,7 @@
       <span style="opacity:.75">In manual aim, fly with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> and shoot with the mouse — there is no failure here.</span>
     </div>
     <div id="right">
+      <div class="btn" id="fsBtn" title="Full screen / resize">⛶&nbsp; Full screen</div>
       <div class="btn" id="settingsBtn">⚙&nbsp; Settings</div>
     </div>
   </div>
@@ -1438,6 +1443,7 @@ const GAME = {
   freeModalOpen: false,
   savedAutofire: true,
   savedAim: 'forward',
+  freeBaseline: null,   // the player's own mix, parked while the Free-mode preset is active
   power: { rapid: 0, spread: 0, ward: 0, magnet: 0 },
   shake: 0,
   bubbleAlpha: 0,
@@ -3629,19 +3635,21 @@ const layerEls = {};
   }
 })();
 
-// persists whatever is currently live
+// persists whatever is currently live — which, while Free mode is running, is
+// the player's own parked mix rather than the transient Free-mode preset
 function saveSettings() {
+  const b = GAME.freeBaseline;
   try {
     localStorage.setItem('drift.settings', JSON.stringify({
       sound: Audio.isEnabled(),
-      volumes: Audio.getVolumes(),
+      volumes: b ? b.volumes : Audio.getVolumes(),
       engineSound: Audio.getEnginePreset(),
-      musicLayers: Audio.getMusicLayers(),
+      musicLayers: b ? b.layers : Audio.getMusicLayers(),
       autoFireMode: GAME.autoFireMode,
-      hideHudInFree: SETTINGS.hideHudInFree,
+      hideHudInFree: b ? b.hideHudInFree : SETTINGS.hideHudInFree,
       hideHud: SETTINGS.hideHud,
       reduceMotion: SETTINGS.reduceMotion,
-      showHint: SETTINGS.showHint,
+      showHint: b ? b.showHint : SETTINGS.showHint,
       askOnFree: SETTINGS.askOnFree
     }));
   } catch (e) { /* storage may be blocked on file:// */ }
@@ -3713,18 +3721,21 @@ const btnApply = document.getElementById('settingsApply');
 const btnDiscard = document.getElementById('settingsDiscard');
 
 function stageFromLive() {
+  // While the Free-mode preset is running, the modal edits the player's own
+  // (parked) mix so their preferences survive the session.
+  const b = GAME.freeBaseline;
   STAGED.sound = Audio.isEnabled();
-  STAGED.volumes = Audio.getVolumes();
+  STAGED.volumes = b ? cloneVolumes(b.volumes) : Audio.getVolumes();
   STAGED.engineSound = Audio.getEnginePreset();
-  STAGED.musicLayers = Audio.getMusicLayers();
+  STAGED.musicLayers = b ? cloneLayers(b.layers) : Audio.getMusicLayers();
   STAGED.autofire = GAME.autofire;
   STAGED.aimMode = GAME.aimMode;
   STAGED.autoFireMode = GAME.autoFireMode;
   STAGED.freeMode = GAME.freeMode;
-  STAGED.hideHudInFree = SETTINGS.hideHudInFree;
+  STAGED.hideHudInFree = b ? b.hideHudInFree : SETTINGS.hideHudInFree;
   STAGED.hideHud = SETTINGS.hideHud;
   STAGED.reduceMotion = SETTINGS.reduceMotion;
-  STAGED.showHint = SETTINGS.showHint;
+  STAGED.showHint = b ? b.showHint : SETTINGS.showHint;
 }
 
 function segOn(seg, value) {
@@ -3759,22 +3770,25 @@ function renderStaged() {
 }
 
 function isDirty() {
+  // While the Free-mode preset is live, the modal is editing the parked mix —
+  // so compare against that, not against the (calm) live values.
+  const b = GAME.freeBaseline;
   if (STAGED.sound !== Audio.isEnabled()) return true;
   if (STAGED.engineSound !== Audio.getEnginePreset()) return true;
   if (STAGED.autofire !== GAME.autofire) return true;
   if (STAGED.aimMode !== GAME.aimMode) return true;
   if (STAGED.autoFireMode !== GAME.autoFireMode) return true;
   if (STAGED.freeMode !== GAME.freeMode) return true;
-  if (STAGED.hideHudInFree !== SETTINGS.hideHudInFree) return true;
+  if (STAGED.hideHudInFree !== (b ? b.hideHudInFree : SETTINGS.hideHudInFree)) return true;
   if (STAGED.hideHud !== SETTINGS.hideHud) return true;
   if (STAGED.reduceMotion !== SETTINGS.reduceMotion) return true;
-  if (STAGED.showHint !== SETTINGS.showHint) return true;
-  const live = Audio.getVolumes();
+  if (STAGED.showHint !== (b ? b.showHint : SETTINGS.showHint)) return true;
+  const live = b ? b.volumes : Audio.getVolumes();
   for (let i = 0; i < VOL_KEYS.length; i++) {
     const k = VOL_KEYS[i];
     if (Math.abs((STAGED.volumes[k] || 0) - (live[k] || 0)) > 1e-4) return true;
   }
-  const liveLayers = Audio.getMusicLayers();
+  const liveLayers = b ? b.layers : Audio.getMusicLayers();
   for (let i = 0; i < STAGED.musicLayers.length; i++) {
     const L = STAGED.musicLayers[i];
     const r = liveLayers[i];
@@ -3810,25 +3824,65 @@ function touched() { renderStaged(); markDirty(false); }
 
 // commit everything in one go — this is what "Apply settings" does
 function commitStaged() {
-  // free mode first: it snapshots autofire/aim so it can restore them on exit
-  if (STAGED.freeMode !== GAME.freeMode) setFreeMode(STAGED.freeMode);
+  const inFree = GAME.freeMode;
+  const wantFree = !!STAGED.freeMode;
 
-  GAME.autofire = STAGED.autofire;
   GAME.autoFireMode = STAGED.autoFireMode;
   if (STAGED.aimMode !== GAME.aimMode) setAimMode(STAGED.aimMode);
-
-  SETTINGS.hideHudInFree = STAGED.hideHudInFree;
   SETTINGS.reduceMotion = STAGED.reduceMotion;
   SETTINGS.hideHud = STAGED.hideHud;
-  SETTINGS.showHint = STAGED.showHint;
   SETTINGS.autoHidePeek = !STAGED.hideHud;
+
+  // While Free mode stays on, the modal was editing the parked mix — store it
+  // back there and let the calm preset keep governing the live session.
+  if (inFree && wantFree) {
+    GAME.freeBaseline = {
+      volumes: cloneVolumes(STAGED.volumes),
+      layers: cloneLayers(STAGED.musicLayers),
+      hideHudInFree: STAGED.hideHudInFree,
+      showHint: STAGED.showHint
+    };
+    applyFreePreset();
+  } else {
+    SETTINGS.hideHudInFree = STAGED.hideHudInFree;
+    SETTINGS.showHint = STAGED.showHint;
+    Audio.setEnabled(STAGED.sound);
+    Audio.setVolumes(STAGED.volumes);
+    Audio.setEnginePreset(STAGED.engineSound);
+    Audio.setMusicLayers(STAGED.musicLayers);
+    GAME.freeBaseline = null;
+  }
+
+  // Free mode first: entering it snapshots autofire/aim and locks the calm mix.
+  if (wantFree !== inFree) {
+    GAME.freeMode = wantFree;
+    SETTINGS.autoHidePeek = false;
+    document.body.classList.toggle('free', wantFree);
+    if (tcFree) tcFree.classList.toggle('on', wantFree);
+    if (wantFree) {
+      GAME.savedAutofire = GAME.autofire;
+      GAME.savedAim = GAME.aimMode;
+      GAME.autofire = true;
+      if (!GAME.freeBaseline) captureFreeBaseline();
+      applyFreePreset();
+      openFreeModal();
+    } else {
+      GAME.autofire = GAME.savedAutofire;
+      if (GAME.savedAim) setAimMode(GAME.savedAim);
+      if (crosshairEl) {
+        crosshairEl.style.left = input.cx + 'px';
+        crosshairEl.style.top = input.cy + 'px';
+      }
+      GAME.freeBaseline = null;
+    }
+  } else if (wantFree) {
+    GAME.autofire = true;
+  } else {
+    GAME.autofire = STAGED.autofire;
+  }
+
   applyHudVisibility();
-
-  Audio.setEnabled(STAGED.sound);
-  Audio.setVolumes(STAGED.volumes);
-  Audio.setEnginePreset(STAGED.engineSound);
-  Audio.setMusicLayers(STAGED.musicLayers);
-
+  stageFromLive();
   saveSettings();
   markDirty(true);
 }
@@ -3863,7 +3917,54 @@ function toggleMute() {
   syncSettings();
 }
 
+// ---- the calm Free-mode preset -------------------------------------------
+// Entering Free mode parks the effects mix, leaves only the Pad music layer (at
+// 40%), hides the HUD and drops the control hints. The player's own mix is
+// remembered in GAME.freeBaseline and put back the moment they take the stick.
+function cloneVolumes(v) {
+  const o = {};
+  for (let i = 0; i < VOL_KEYS.length; i++) o[VOL_KEYS[i]] = v[VOL_KEYS[i]];
+  return o;
+}
+function cloneLayers(arr) {
+  const o = [];
+  for (let i = 0; i < arr.length; i++) o.push({ id: arr[i].id, on: arr[i].on, vol: arr[i].vol });
+  return o;
+}
+function applyFreePreset() {
+  const v = Audio.getVolumes();
+  v.fx = 0;
+  Audio.setVolumes(v);
+  const layers = Audio.getMusicLayers();
+  for (let i = 0; i < layers.length; i++) {
+    const pad = (layers[i].id === 'pad');
+    layers[i].on = pad;
+    layers[i].vol = pad ? 0.4 : 0;
+  }
+  Audio.setMusicLayers(layers);
+  SETTINGS.hideHudInFree = true;
+  SETTINGS.showHint = false;
+}
+function captureFreeBaseline() {
+  GAME.freeBaseline = {
+    volumes: cloneVolumes(Audio.getVolumes()),
+    layers: cloneLayers(Audio.getMusicLayers()),
+    hideHudInFree: SETTINGS.hideHudInFree,
+    showHint: SETTINGS.showHint
+  };
+}
+function restoreFreeBaseline() {
+  const b = GAME.freeBaseline;
+  GAME.freeBaseline = null;
+  if (!b) return;
+  Audio.setVolumes(b.volumes);
+  Audio.setMusicLayers(b.layers);
+  SETTINGS.hideHudInFree = b.hideHudInFree;
+  SETTINGS.showHint = b.showHint;
+}
+
 function setFreeMode(on) {
+  if (GAME.freeMode === on) return;
   GAME.freeMode = on;
   SETTINGS.autoHidePeek = false;   // a fresh Free-mode session re-applies the auto-hide
   document.body.classList.toggle('free', on);
@@ -3872,6 +3973,8 @@ function setFreeMode(on) {
     GAME.savedAutofire = GAME.autofire;
     GAME.savedAim = GAME.aimMode;
     GAME.autofire = true;
+    captureFreeBaseline();
+    applyFreePreset();
   } else {
     GAME.autofire = GAME.savedAutofire;
     if (GAME.savedAim) setAimMode(GAME.savedAim);
@@ -3879,6 +3982,7 @@ function setFreeMode(on) {
       crosshairEl.style.left = input.cx + 'px';
       crosshairEl.style.top = input.cy + 'px';
     }
+    restoreFreeBaseline();
   }
   syncSettings();
   if (on) openFreeModal();
@@ -3905,6 +4009,44 @@ function openSettings(open) {
 
 // ---- wiring ----
 settingsBtn.addEventListener('click', function () { openSettings(true); });
+
+// ---- Full screen / resize ----
+const fsBtn = document.getElementById('fsBtn');
+function fsSupported() {
+  const el = document.documentElement;
+  return !!(el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen);
+}
+function fsElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+}
+function syncFsBtn() {
+  const on = !!fsElement();
+  fsBtn.classList.toggle('on', on);
+  fsBtn.innerHTML = on ? '⛶&nbsp; Exit full screen' : '⛶&nbsp; Full screen';
+}
+function toggleFullScreen() {
+  const el = document.documentElement;
+  try {
+    if (fsElement()) {
+      const ex = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+      if (ex) ex.call(document);
+    } else {
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      if (req) {
+        const p = req.call(el);
+        if (p && p.catch) p.catch(function () {});   // some browsers reject without a gesture
+      }
+    }
+  } catch (e) { /* ignore */ }
+}
+if (!fsSupported()) {
+  fsBtn.style.display = 'none';
+} else {
+  fsBtn.addEventListener('click', toggleFullScreen);
+  document.addEventListener('fullscreenchange', function () { syncFsBtn(); onResize(); });
+  document.addEventListener('webkitfullscreenchange', function () { syncFsBtn(); onResize(); });
+  syncFsBtn();
+}
 settingsClose.addEventListener('click', function () { openSettings(false); });
 settingsBackdrop.addEventListener('click', function () { openSettings(false); });
 

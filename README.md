@@ -20,10 +20,16 @@ slow-moving rock.
   Free mode starts, a small chooser pops up so you can set the aiming style and
   the autopilot gunnery (Automatic/Manual and Always/When needed/Do not shoot),
   then press **OK**. Tick "Ask me when Free mode starts" off to skip it.
+  Entering Free mode also drops into a calm preset — effects off, just the Pad
+  music layer at 40%, HUD hidden and control hints off. Your own mix is parked
+  and restored the moment you take the stick back.
 - **Power-ups:** rapid fire, spread, ward, magnet, nova.
 - **A glass-cockpit interface.** The title screen, HUD, settings and touch
   controls share one calm, frosted-glass design — thin uppercase labels,
   generous spacing and a single cyan accent that matches the field.
+- **Full screen button** in the bottom-right, next to Settings. It toggles
+  fullscreen (with the vendor fallbacks) and re-fits the view the moment the
+  size changes.
 - **A full settings modal**, organised into categories (Audio, Music, Engine,
   Gameplay, Display, Controls) with staged edits, an Apply button and
   `localStorage` persistence.
