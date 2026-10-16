@@ -16,8 +16,10 @@ slow-moving rock.
 - **Two aiming modes.** *Automatic* turrets hunt the best rock ahead and lead
   it; *Manual* lets you place a reticle and the turrets swing to follow it.
 - **Free mode (autopilot).** Press `G` (or "let the autopilot fly" on the title
-  screen) and the ship flies itself. Any movement key hands control back.
-  Autopilot gunnery can be set to *Always*, *When needed* or *Do not shoot*.
+  screen) and the ship flies itself. Any movement key hands control back. When
+  Free mode starts, a small chooser pops up so you can set the aiming style and
+  the autopilot gunnery (Automatic/Manual and Always/When needed/Do not shoot),
+  then press **OK**. Tick "Ask me when Free mode starts" off to skip it.
 - **Power-ups:** rapid fire, spread, ward, magnet, nova.
 - **A full settings modal**, organised into categories (Audio, Music, Engine,
   Gameplay, Display, Controls) with staged edits, an Apply button and
@@ -25,10 +27,11 @@ slow-moving rock.
 - **A real music mixer.** The generative score is split into layers — pad,
   bells, bass, arps, chimes and swells — and every layer has its own on/off
   switch and volume slider under Music. Eleven engine voices, a per-family
-  effects mix, HUD visibility, reduced camera motion and more.
-- **A quick mixer in Free mode.** When the autopilot takes over, a small volume
-  panel pops up (master, music, engine, effects); it fades away after a moment
-  and comes back when you move the mouse.
+  effects mix, HUD visibility, a toggle for the on-screen control hints,
+  reduced camera motion and more.
+- **Mobile and touch ready.** A responsive HUD and a full touch scheme: drag
+  anywhere to steer, a *Fire* button to shoot and a *Free* button to hand over
+  to the autopilot.
 - **Procedural everything.** All textures, the celestial generative music
   (pad, bells, arpeggio, chimes and slow swells), the ship, the ringed planet,
   the comets and the dust are generated at runtime. No external assets.
@@ -46,6 +49,9 @@ slow-moving rock.
 | `P` | Pause |
 | `Esc` | Settings (closes / opens) |
 | `Enter` | Apply settings (while the modal is open) |
+
+On a touch screen: drag anywhere to steer, and use the on-screen **Fire** and
+**Free** buttons.
 
 ## Running it
 
